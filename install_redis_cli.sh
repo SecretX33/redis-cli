@@ -13,6 +13,27 @@ fi
 trap "exit 1"           HUP INT PIPE QUIT TERM
 trap 'rm -rf "$TEMPD"'  EXIT
 
+printBanner() {
+    echo "======================================================"
+    echo "=============   Auto install redis-cli   ============="
+    echo "======================================================"
+    echo ""
+}
+
+download() {
+    url="$1"
+    filename="$2"
+
+    if [ -x "$(which wget)" ] ; then
+        wget -q "$url" -O "$filename"
+    elif [ -x "$(which curl)" ]; then
+        curl -sL "$url" -o "$filename"
+    else
+        read -p "Could not find curl or wget, please install one. Press any button to exit."
+        exit 1
+    fi
+}
+
 userInput='\0'
 
 readKeys() {
@@ -36,12 +57,14 @@ step=0
 sudo printf ""
 clear
 
+printBanner
+
 echo "$((++step)). Downloading and installing necessary dependencies..."
 sudo apt-get update > /dev/null && \
     sudo apt-get install gcc make -y >/dev/null
 
 echo "$((++step)). Downloading and extracting redis source files..."
-curl -sL http://download.redis.io/redis-stable.tar.gz -o redis-stable.tar.gz && \
+download http://download.redis.io/redis-stable.tar.gz redis-stable.tar.gz && \
     tar xzf redis-stable.tar.gz
 
 # Exit if the redis compressed file wasn't extracted successfully
@@ -72,7 +95,9 @@ echo "Build time of redis-cli: $(echo "scale=2; $end_time - $start_time" | bc)s"
 
 # Verify if the redis-cli already exists, and if so, ask the user if he really wants to get rid of the old file
 if [ -f "/usr/local/bin/redis-cli" ]; then
-    clear && printf "WARNING: redis-cli already exists in your /usr/local/bin folder.\nDo you want to replace it? (y/n) "
+    clear && \
+        printBanner && \
+        printf "WARNING: redis-cli already exists in your /usr/local/bin folder.\nDo you want to replace it? (y/n) "
     readKeys "y" "n"
 
     if [ "$userInput" != "y" ]; then
