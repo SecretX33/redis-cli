@@ -14,9 +14,9 @@ trap "exit 1"           HUP INT PIPE QUIT TERM
 trap 'rm -rf "$TEMPD"'  EXIT
 
 printBanner() {
-    echo "======================================================"
-    echo "=============   Auto install redis-cli   ============="
-    echo "======================================================"
+    echo "===================================================="
+    echo "=============  Auto install redis-cli  ============="
+    echo "===================================================="
     echo ""
 }
 
@@ -101,7 +101,7 @@ if [ -f "/usr/local/bin/redis-cli" ]; then
     readKeys "y" "n"
 
     if [ "$userInput" != "y" ]; then
-        clear && printf "Fair enough, bye..."
+        clear && echo "Fair enough, bye..."
         sleep 3
         exit 1
     else
