@@ -73,12 +73,12 @@ if [ ! -e "redis-stable" ]; then
     >&2 read -p "Failed to extract redis-cli tarball! Press any button to exit."
     exit 1
 fi
-echo "Finished download and extraction of redis source files!"
+echo "Finished download and extraction of redis source files."
 
 # Access the extracted redis files
 cd redis-stable || exit 1
 
-echo "$((++step)). Building redis-cli from source files, sit back and relax for some minutes, this operation can take a while..."
+echo "$((++step)). Building redis-cli from source files, sit back and relax, this operation can take a while..."
 
 start_time=$(date +%s.%2N)
 # Build the actual redis files, which will also build our desired 'redis-cli'
@@ -112,7 +112,7 @@ if [ -f "/usr/local/bin/redis-cli" ]; then
             read -p "Failed to remove redis-cli file from '/usr/local/bin' folder. Press any button to exit."
             exit 1
         fi
-        echo "Successfully removed old redis-cli file!"
+        echo "Successfully removed old redis-cli file."
     fi
 fi
 
