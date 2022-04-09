@@ -14,6 +14,7 @@ trap "exit 1"           HUP INT PIPE QUIT TERM
 trap 'rm -rf "$TEMPD"'  EXIT
 
 printBanner() {
+    clear
     echo "===================================================="
     echo "=============  Auto install redis-cli  ============="
     echo "===================================================="
@@ -42,6 +43,7 @@ readKeys() {
         read -s -n 1 userInput <&1
         for validKey in "${validKeys[@]}"; do
             if [ "${validKey,,}" = "${userInput,,}" ]; then
+                userInput="${validKey,,}"
                 return 0
             fi
         done
@@ -55,7 +57,6 @@ step=0
 
 # Dummy command to get sudo permissions
 sudo printf ""
-clear
 
 printBanner
 
@@ -95,15 +96,14 @@ echo "Build time of redis-cli: $(echo "scale=2; $end_time - $start_time" | bc)s"
 
 # Verify if the redis-cli already exists, and if so, ask the user if he really wants to get rid of the old file
 if [ -f "/usr/local/bin/redis-cli" ]; then
-    clear && \
-        printBanner && \
+    printBanner && \
         printf "WARNING: redis-cli already exists in your /usr/local/bin folder.\nDo you want to replace it? (y/n) "
     readKeys "y" "n"
 
     if [ "$userInput" != "y" ]; then
-        clear && echo "Fair enough, bye..."
+        printBanner && echo "Fair enough, bye..."
         sleep 3
-        exit 1
+        clear && exit 1
     else
         echo ""
         echo "$((++step)). Removing old redis-cli file..."
