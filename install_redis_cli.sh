@@ -13,11 +13,21 @@ fi
 trap "exit 1"           HUP INT PIPE QUIT TERM
 trap 'rm -rf "$TEMPD"'  EXIT
 
+# These three variables must match the redis tarball file name
+REDIS_DOWNLOAD_URL="https://download.redis.io/redis-stable.tar.gz"
+REDIS_FILE_NAME="redis-stable.tar.gz"
+REDIS_FOLDER_NAME="redis-stable"
+# Path to built redis-cli executable (make)
+REDIS_CLI_BUILT_PATH="src/redis-cli"
+# Where the redis-cli executable will be copied to (must start with and not finish with /)
+DESTINATION_FOLDER="/usr/local/bin"
+DESTINATION_FILE="$DESTINATION_FOLDER/redis-cli"
+
 printBanner() {
     clear
-    echo "===================================================="
-    echo "=============  Auto install redis-cli  ============="
-    echo "===================================================="
+    echo "=================================================="
+    echo "============  Auto install redis-cli  ============"
+    echo "=================================================="
     echo ""
 }
 
@@ -25,12 +35,12 @@ download() {
     url="$1"
     filename="$2"
 
-    if [ -x "$(which wget)" ] ; then
-        wget -q "$url" -O "$filename"
-    elif [ -x "$(which curl)" ]; then
+    if [ -x "$(which curl)" ]; then
         curl -sL "$url" -o "$filename"
+    elif [ -x "$(which wget)" ]; then
+        wget -q "$url" -O "$filename"
     else
-        read -p "Could not find curl or wget, please install one. Press any button to exit."
+        read -p "Could not find curl or wget, please install one of them. Press any button to exit."
         exit 1
     fi
 }
@@ -61,22 +71,23 @@ sudo printf ""
 printBanner
 
 echo "$((++step)). Downloading and installing necessary dependencies..."
-sudo apt-get update > /dev/null && \
+sudo apt-get update >/dev/null && \
     sudo apt-get install gcc make -y >/dev/null
+echo "Finished installing dependencies."
 
 echo "$((++step)). Downloading and extracting redis source files..."
-download http://download.redis.io/redis-stable.tar.gz redis-stable.tar.gz && \
-    tar xzf redis-stable.tar.gz
+download "$REDIS_DOWNLOAD_URL" "$REDIS_FILE_NAME" && \
+    tar xzf "$REDIS_FILE_NAME"
 
 # Exit if the redis compressed file wasn't extracted successfully
-if [ ! -e "redis-stable" ]; then
+if [ ! -e "$REDIS_FOLDER_NAME" ]; then
     >&2 read -p "Failed to extract redis-cli tarball! Press any button to exit."
     exit 1
 fi
 echo "Finished download and extraction of redis source files."
 
 # Access the extracted redis files
-cd redis-stable || exit 1
+cd "$REDIS_FOLDER_NAME" || exit 1
 
 echo "$((++step)). Building redis-cli from source files, sit back and relax, this operation can take a while..."
 
@@ -86,18 +97,20 @@ make &>/dev/null
 end_time=$(date +%s.%2N)
 
 # Exit if the redis wasn't built successfully
-if [ ! -e "src/redis-cli" ]; then
+if [ ! -e "$REDIS_CLI_BUILT_PATH" ]; then
     echo ""
     >&2 read -p "Failed to build redis-cli! Press any button to exit."
     exit 1
 fi
 echo "Build time of redis-cli: $(echo "scale=2; $end_time - $start_time" | bc)s"
 
+new_redis_version=$("$REDIS_CLI_BUILT_PATH" --version | grep -E -o "[0-9\.]+")
 
 # Verify if the redis-cli already exists, and if so, ask the user if he really wants to get rid of the old file
-if [ -f "/usr/local/bin/redis-cli" ]; then
+if [ -f "$DESTINATION_FILE" ]; then
+    current_redis_version=$("$DESTINATION_FILE" --version | grep -E -o "[0-9\.]+")
     printBanner && \
-        printf "WARNING: redis-cli already exists in your /usr/local/bin folder.\nDo you want to replace it? (y/n) "
+        printf "WARNING: You already have a redis-cli in your %s folder.\nCurrent redis-cli version: %s. New redis-cli version: %s.\nDo you want to replace it? (y/n) " "$DESTINATION_FILE" "$current_redis_version" "$new_redis_version"
     readKeys "y" "n"
 
     if [ "$userInput" != "y" ]; then
@@ -107,28 +120,29 @@ if [ -f "/usr/local/bin/redis-cli" ]; then
     else
         echo ""
         echo "$((++step)). Removing old redis-cli file..."
-        sudo rm "/usr/local/bin/redis-cli"
-        if [ -f "/usr/local/bin/redis-cli" ]; then
-            read -p "Failed to remove redis-cli file from '/usr/local/bin' folder. Press any button to exit."
+        sudo rm "$DESTINATION_FILE"
+        if [ -f "$DESTINATION_FILE" ]; then
+            read -p "Failed to remove redis-cli file from '$DESTINATION_FOLDER' folder. Press any button to exit."
             exit 1
         fi
         echo "Successfully removed old redis-cli file."
     fi
 fi
 
-echo "$((++step)). Copying redis-cli file to /usr/local/bin folder..."
+echo "$((++step)). Copying redis-cli file to $DESTINATION_FOLDER folder..."
 
 # Copy the built 'redis-cli' to the binary folder so we can use it
-sudo cp src/redis-cli /usr/local/bin/
+sudo cp "$REDIS_CLI_BUILT_PATH" "$DESTINATION_FOLDER"
 
-if [ ! -e "/usr/local/bin/redis-cli" ]; then
-    read -p "Failed to copy redis-cli file to '/usr/local/bin' folder. Press any button to exit."
+if [ ! -e "$DESTINATION_FILE" ]; then
+    read -p "Failed to copy redis-cli file to '$DESTINATION_FOLDER' folder. Press any button to exit."
     exit 1
 fi
 echo "$((++step)). Successfully copied redis-cli file, setting its permissions to 755..."
 
 # Set 'redis-cli' permissions so we can execute it as normal user
-sudo chmod 755 /usr/local/bin/redis-cli
+sudo chmod 755 "$DESTINATION_FILE"
 
-read -p "Finished installation of redis-cli, press any button to exit..."
+echo ""
+read -p "Finished installation of redis-cli version $new_redis_version, press any button to exit..."
 exit 1
