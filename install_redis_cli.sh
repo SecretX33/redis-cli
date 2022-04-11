@@ -72,7 +72,7 @@ printBanner
 
 echo "$((++step)). Downloading and installing necessary dependencies..."
 sudo apt-get update >/dev/null && \
-    sudo apt-get install gcc make -y >/dev/null
+    sudo apt-get install gcc make openssl libssl-dev -y >/dev/null
 echo "Finished installing dependencies."
 
 echo "$((++step)). Downloading and extracting redis source files..."
@@ -93,7 +93,7 @@ echo "$((++step)). Building redis-cli from source files, sit back and relax, thi
 
 start_time=$(date +%s.%2N)
 # Build the actual redis files, which will also build our desired 'redis-cli'
-make &>/dev/null
+make BUILD_TLS=yes &>/dev/null
 end_time=$(date +%s.%2N)
 
 # Exit if the redis wasn't built successfully
