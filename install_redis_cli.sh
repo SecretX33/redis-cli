@@ -145,4 +145,4 @@ sudo chmod 755 "$DESTINATION_FILE"
 
 echo ""
 read -p "Finished installation of redis-cli version $new_redis_version, press any button to exit..."
-exit 1
+exit 0
